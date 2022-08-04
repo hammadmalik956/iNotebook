@@ -4,9 +4,9 @@ const router = express.Router();
 const bcrypt = require("bcryptjs");
 const { body, validationResult } = require("express-validator");
 const jwt = require("jsonwebtoken");
-
+const fetchuser = require('../middleware/fetchuser');
 const JWT_SECRET = "Iama$good#boy";
-// Create A user using : POST "/api/auth/createuser" Doesn't require Authentication
+// Route 1: Create A user using : POST "/api/auth/createuser" Doesn't require Authentication
 router.post(
   "/createuser",
   [
@@ -51,7 +51,7 @@ router.post(
     }
   }
 );
-//Authenticate a user using  : POST "/api/auth/login" Doesn't require Authentication
+// Route 2: Authenticate a user using  : POST "/api/auth/login" Doesn't require Authentication
 router.post(
   "/login",
   [
@@ -69,15 +69,14 @@ router.post(
 
     try {
       let user = await User.findOne({ email });
-      
+
       if (!user) {
         return res
           .status(400)
           .json({ error: "Please login with correct credentials" });
       }
-      const passwordCompare = await bcrypt.compare(password,user.password);
-      
-      
+      const passwordCompare = await bcrypt.compare(password, user.password);
+
       if (!passwordCompare) {
         return res
           .status(400)
@@ -90,6 +89,20 @@ router.post(
       };
       const authtoken = jwt.sign(data, JWT_SECRET);
       res.json({ authtoken });
+    } catch (error) {
+      console.error(error.message);
+      res.status(500).send("Internal Server Error");
+    }
+  }
+);
+
+// Route 3: Get Logined  user details using   : POST "/api/auth/getuser" Login Required
+router.post(
+  "/getuser",fetchuser,async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await User.findById(userId).select("-password");
+      res.send(user);
     } catch (error) {
       console.error(error.message);
       res.status(500).send("Internal Server Error");
